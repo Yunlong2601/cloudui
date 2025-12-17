@@ -1,25 +1,37 @@
 # CloudVault
 
-A file management web application imported from Lovable.
+A file management web application with multi-level security.
 
 ## Overview
-CloudVault is a frontend-only React application for file management with features including:
+CloudVault is a React application for secure file management with features including:
 - File upload via drag & drop
 - File organization (My Drive, Recent, Starred, Trash)
 - Storage tracking
 - Grid/list view toggle
 - Search functionality
 - **File Security Levels**: Standard, High, and Maximum security options
-- **Double Encryption**: Maximum security files use double encryption with email-based decryption codes
+- **End-to-End Encryption**: Maximum security files are encrypted client-side
 
 ## Security Feature Architecture
 The security system supports three levels:
-1. **Standard**: Basic single-layer encryption
-2. **High**: Enhanced encryption with stronger algorithms
-3. **Maximum**: Double encryption - requires secondary decryption code sent via email
+1. **Standard**: Basic file storage
+2. **High**: Enhanced security indication
+3. **Maximum**: End-to-end encryption with email-based decryption codes
 
-### Email Integration (Configured)
-Email sending for decryption codes is implemented using Gmail SMTP with nodemailer.
+### Maximum Security Flow
+1. **Upload**: When uploading with Maximum security, the file is encrypted using AES-GCM encryption
+2. **Email**: The 6-digit decryption code is sent to the specified recipient email
+3. **Download**: User downloads an `.encrypted` file
+4. **Decrypt**: User navigates to `/decrypt` page, uploads the encrypted file, enters the code, and downloads the decrypted file
+
+### Encryption Implementation
+- Uses Web Crypto API with AES-GCM algorithm
+- Key derivation uses PBKDF2 with 100,000 iterations
+- Encrypted package includes: metadata, salt, IV, and encrypted content
+- Located in `src/lib/crypto.ts`
+
+### Email Integration
+Email sending for decryption codes uses Gmail SMTP with nodemailer.
 
 **Configuration:**
 - `GMAIL_USER`: The Gmail address used for sending
@@ -40,6 +52,7 @@ Email sending for decryption codes is implemented using Gmail SMTP with nodemail
 - React Router for navigation
 - TanStack Query for data fetching
 - Lucide React for icons
+- Web Crypto API for encryption
 
 ## Project Structure
 ```
@@ -49,17 +62,25 @@ src/
 │   ├── layout/      # Layout components (Header, Sidebar)
 │   └── ui/          # Shadcn UI components
 ├── hooks/           # Custom React hooks
-├── lib/             # Utility functions
-├── pages/           # Page components
+├── lib/             # Utility functions (including crypto.ts)
+├── pages/           # Page components (Index, Decrypt)
 ├── App.tsx          # Main application component
 ├── main.tsx         # Entry point
 └── index.css        # Global styles
+
+server/
+└── index.ts         # Express backend for email sending
 ```
 
+## Pages
+- `/` - Main file management interface
+- `/decrypt` - Decrypt encrypted files
+
 ## Development
-- Run: `npm run dev` (starts on port 5000)
+- Run: Workflow starts both frontend and backend
 - Build: `npm run build`
 - Preview: `npm run preview`
 
 ## Deployment
 Configured for static deployment. Build output goes to `dist/` directory.
+Note: For production, the email backend would need separate deployment.
