@@ -95,8 +95,25 @@ const Index = () => {
         decryptionCode = generateDecryptionCode();
         try {
           encryptedBlob = await createEncryptedPackage(file, decryptionCode);
+          
+          // Send the decryption code via email
+          if (settings.recipientEmail) {
+            fetch("/api/send-decryption-code", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: settings.recipientEmail,
+                code: decryptionCode,
+                fileName: file.name,
+              }),
+            }).catch(() => {
+              toast.error(`Failed to send decryption code to ${settings.recipientEmail}`);
+            });
+          }
         } catch (error) {
           toast.error(`Failed to encrypt ${file.name}`);
+          // Remove the failed upload from the list
+          setUploadingFiles(prev => prev.filter(u => u.id !== upload.id));
           continue;
         }
       }
