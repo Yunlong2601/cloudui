@@ -41,6 +41,7 @@ interface FileDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   onDelete?: (id: string) => void;
   onToggleStar?: (id: string) => void;
+  onDownload?: (id: string) => void;
 }
 
 const FileDetailDialog = ({
@@ -49,6 +50,7 @@ const FileDetailDialog = ({
   onOpenChange,
   onDelete,
   onToggleStar,
+  onDownload,
 }: FileDetailDialogProps) => {
   const [showShareInput, setShowShareInput] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
@@ -75,10 +77,9 @@ const FileDetailDialog = ({
   };
 
   const handleDownload = () => {
-    toast({
-      title: "Download started",
-      description: `Downloading ${file.name}...`,
-    });
+    if (onDownload) {
+      onDownload(file.id);
+    }
     onOpenChange(false);
   };
 

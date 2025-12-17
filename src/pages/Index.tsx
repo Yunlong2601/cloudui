@@ -6,22 +6,31 @@ import { FileGrid } from "@/components/files/FileGrid";
 import { UploadProgress, UploadingFile } from "@/components/files/UploadProgress";
 import { FileItem } from "@/components/files/FileCard";
 import FileDetailDialog from "@/components/files/FileDetailDialog";
+import { SecuritySettingsDialog, SecuritySettings } from "@/components/files/SecuritySettingsDialog";
+import { DecryptionCodeDialog } from "@/components/files/DecryptionCodeDialog";
 import { Button } from "@/components/ui/button";
 import { Users, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 
+// Helper to generate encryption key
+const generateEncryptionKey = () => {
+  return Array.from({ length: 6 }, () => 
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]
+  ).join("");
+};
+
 // Sample data for demonstration
 const sampleFiles: FileItem[] = [
-  { id: "1", name: "Project Proposal.pdf", type: "application/pdf", size: 2457600, modifiedAt: new Date(Date.now() - 86400000), starred: true },
-  { id: "2", name: "vacation-photo.jpg", type: "image/jpeg", size: 4194304, modifiedAt: new Date(Date.now() - 172800000) },
-  { id: "3", name: "presentation.pptx", type: "application/vnd.ms-powerpoint", size: 8388608, modifiedAt: new Date(Date.now() - 259200000) },
-  { id: "4", name: "budget-2024.xlsx", type: "application/vnd.ms-excel", size: 1048576, modifiedAt: new Date(Date.now() - 345600000), starred: true },
-  { id: "5", name: "source-code.zip", type: "application/zip", size: 15728640, modifiedAt: new Date(Date.now() - 432000000) },
-  { id: "6", name: "meeting-notes.txt", type: "text/plain", size: 12288, modifiedAt: new Date() },
-  { id: "7", name: "logo-design.png", type: "image/png", size: 524288, modifiedAt: new Date(Date.now() - 518400000) },
-  { id: "8", name: "podcast-episode.mp3", type: "audio/mpeg", size: 52428800, modifiedAt: new Date(Date.now() - 604800000) },
-  { id: "9", name: "demo-video.mp4", type: "video/mp4", size: 104857600, modifiedAt: new Date(Date.now() - 691200000) },
-  { id: "10", name: "config.json", type: "application/json", size: 2048, modifiedAt: new Date(Date.now() - 777600000) },
+  { id: "1", name: "Project Proposal.pdf", type: "application/pdf", size: 2457600, modifiedAt: new Date(Date.now() - 86400000), starred: true, securityLevel: "standard" },
+  { id: "2", name: "vacation-photo.jpg", type: "image/jpeg", size: 4194304, modifiedAt: new Date(Date.now() - 172800000), securityLevel: "high" },
+  { id: "3", name: "presentation.pptx", type: "application/vnd.ms-powerpoint", size: 8388608, modifiedAt: new Date(Date.now() - 259200000), securityLevel: "maximum", recipientEmail: "team@example.com", secondaryEncryptionKey: "ABC123" },
+  { id: "4", name: "budget-2024.xlsx", type: "application/vnd.ms-excel", size: 1048576, modifiedAt: new Date(Date.now() - 345600000), starred: true, securityLevel: "standard" },
+  { id: "5", name: "source-code.zip", type: "application/zip", size: 15728640, modifiedAt: new Date(Date.now() - 432000000), securityLevel: "high" },
+  { id: "6", name: "meeting-notes.txt", type: "text/plain", size: 12288, modifiedAt: new Date(), securityLevel: "standard" },
+  { id: "7", name: "logo-design.png", type: "image/png", size: 524288, modifiedAt: new Date(Date.now() - 518400000), securityLevel: "standard" },
+  { id: "8", name: "podcast-episode.mp3", type: "audio/mpeg", size: 52428800, modifiedAt: new Date(Date.now() - 604800000), securityLevel: "standard" },
+  { id: "9", name: "demo-video.mp4", type: "video/mp4", size: 104857600, modifiedAt: new Date(Date.now() - 691200000), securityLevel: "standard" },
+  { id: "10", name: "config.json", type: "application/json", size: 2048, modifiedAt: new Date(Date.now() - 777600000), securityLevel: "standard" },
 ];
 
 // Sample shared files
@@ -41,6 +50,10 @@ const Index = () => {
   const [isSharedView, setIsSharedView] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [securityDialogOpen, setSecurityDialogOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [decryptionDialogOpen, setDecryptionDialogOpen] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState<FileItem | null>(null);
 
   const storageUsed = files.reduce((acc, file) => acc + file.size, 0);
   const storageTotal = 15 * 1073741824; // 15 GB
@@ -54,6 +67,12 @@ const Index = () => {
   });
 
   const handleFilesSelected = useCallback((selectedFiles: File[]) => {
+    setPendingFiles(selectedFiles);
+    setSecurityDialogOpen(true);
+  }, []);
+
+  const handleSecurityConfirm = useCallback((settings: SecuritySettings) => {
+    const selectedFiles = pendingFiles;
     const newUploads: UploadingFile[] = selectedFiles.map(file => ({
       id: `upload-${Date.now()}-${file.name}`,
       name: file.name,
@@ -87,10 +106,20 @@ const Index = () => {
             type: file.type || "application/octet-stream",
             size: file.size,
             modifiedAt: new Date(),
+            securityLevel: settings.securityLevel,
+            encryptionKey: generateEncryptionKey(),
+            secondaryEncryptionKey: settings.securityLevel === "maximum" ? generateEncryptionKey() : undefined,
+            recipientEmail: settings.recipientEmail,
           };
           
           setFiles(prev => [newFile, ...prev]);
-          toast.success(`${file.name} uploaded successfully`);
+          
+          const securityMsg = settings.securityLevel === "maximum" 
+            ? " with maximum security (double encryption)"
+            : settings.securityLevel === "high"
+            ? " with high security"
+            : "";
+          toast.success(`${file.name} uploaded successfully${securityMsg}`);
         } else {
           setUploadingFiles(prev => 
             prev.map(u => 
@@ -102,7 +131,9 @@ const Index = () => {
         }
       }, 200);
     });
-  }, []);
+
+    setPendingFiles([]);
+  }, [pendingFiles]);
 
   const handleStar = useCallback((id: string) => {
     setFiles(prev => 
@@ -120,8 +151,22 @@ const Index = () => {
 
   const handleDownload = useCallback((id: string) => {
     const file = currentFiles.find(f => f.id === id);
-    toast.info(`Downloading ${file?.name}...`);
+    if (!file) return;
+
+    if (file.securityLevel === "maximum" && file.recipientEmail && file.secondaryEncryptionKey) {
+      setDownloadingFile(file);
+      setDecryptionDialogOpen(true);
+    } else {
+      toast.info(`Downloading ${file.name}...`);
+    }
   }, [currentFiles]);
+
+  const handleDecryptionSuccess = useCallback(() => {
+    if (downloadingFile) {
+      toast.success(`${downloadingFile.name} decrypted and downloading...`);
+      setDownloadingFile(null);
+    }
+  }, [downloadingFile]);
 
   const handleFileClick = useCallback((id: string) => {
     const file = currentFiles.find(f => f.id === id);
@@ -241,6 +286,7 @@ const Index = () => {
         onOpenChange={setDialogOpen}
         onDelete={handleDelete}
         onToggleStar={handleStar}
+        onDownload={handleDownload}
       />
 
       {/* Upload Progress */}
@@ -249,6 +295,26 @@ const Index = () => {
         onDismiss={handleDismissUpload}
         onClearAll={handleClearAllUploads}
       />
+
+      {/* Security Settings Dialog */}
+      <SecuritySettingsDialog
+        open={securityDialogOpen}
+        onOpenChange={setSecurityDialogOpen}
+        files={pendingFiles}
+        onConfirm={handleSecurityConfirm}
+      />
+
+      {/* Decryption Code Dialog */}
+      {downloadingFile && (
+        <DecryptionCodeDialog
+          open={decryptionDialogOpen}
+          onOpenChange={setDecryptionDialogOpen}
+          fileName={downloadingFile.name}
+          recipientEmail={downloadingFile.recipientEmail || ""}
+          expectedCode={downloadingFile.secondaryEncryptionKey || ""}
+          onSuccess={handleDecryptionSuccess}
+        />
+      )}
     </div>
   );
 };

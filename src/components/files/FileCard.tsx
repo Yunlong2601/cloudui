@@ -10,7 +10,10 @@ import {
   Star,
   Download,
   Trash2,
-  Share2
+  Share2,
+  Shield,
+  ShieldCheck,
+  ShieldAlert
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +25,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
+export type SecurityLevel = "standard" | "high" | "maximum";
+
 export interface FileItem {
   id: string;
   name: string;
@@ -31,6 +36,10 @@ export interface FileItem {
   starred?: boolean;
   thumbnail?: string;
   sharedBy?: string;
+  securityLevel?: SecurityLevel;
+  encryptionKey?: string;
+  secondaryEncryptionKey?: string;
+  recipientEmail?: string;
 }
 
 interface FileCardProps {
@@ -73,8 +82,21 @@ const formatDate = (date: Date) => {
   return date.toLocaleDateString();
 };
 
+const getSecurityIcon = (level: SecurityLevel | undefined) => {
+  switch (level) {
+    case "maximum":
+      return { icon: ShieldAlert, color: "text-orange-500", title: "Maximum Security" };
+    case "high":
+      return { icon: ShieldCheck, color: "text-blue-500", title: "High Security" };
+    default:
+      return { icon: Shield, color: "text-muted-foreground", title: "Standard Security" };
+  }
+};
+
 export function FileCard({ file, view, onStar, onDelete, onDownload, onFileClick }: FileCardProps) {
   const { icon: Icon, color, bg } = getFileIcon(file.type);
+  const security = getSecurityIcon(file.securityLevel);
+  const SecurityIcon = security.icon;
 
   if (view === "list") {
     return (
@@ -86,8 +108,13 @@ export function FileCard({ file, view, onStar, onDelete, onDownload, onFileClick
           <Icon className={cn("w-5 h-5", color)} />
         </div>
         
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
           <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+          {file.securityLevel && file.securityLevel !== "standard" && (
+            <div title={security.title}>
+              <SecurityIcon className={cn("w-4 h-4 flex-shrink-0", security.color)} />
+            </div>
+          )}
         </div>
         
         <p className="text-sm text-muted-foreground w-24 text-right">{formatFileSize(file.size)}</p>
@@ -138,10 +165,23 @@ export function FileCard({ file, view, onStar, onDelete, onDownload, onFileClick
       className="group relative bg-card border border-border rounded-xl p-4 hover:shadow-elevated hover:border-primary/20 transition-all duration-300 animate-scale-in cursor-pointer"
       onClick={() => onFileClick?.(file.id)}
     >
+      {/* Security Badge */}
+      {file.securityLevel && file.securityLevel !== "standard" && (
+        <div 
+          className="absolute top-3 left-3 z-10"
+          title={security.title}
+        >
+          <SecurityIcon className={cn("w-5 h-5", security.color)} />
+        </div>
+      )}
+
       {/* Star Button */}
       <button 
-        onClick={() => onStar?.(file.id)}
-        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onStar?.(file.id);
+        }}
+        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10"
       >
         <Star className={cn(
           "w-5 h-5 transition-colors",

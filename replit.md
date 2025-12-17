@@ -9,6 +9,22 @@ CloudVault is a frontend-only React application for file management with feature
 - Storage tracking
 - Grid/list view toggle
 - Search functionality
+- **File Security Levels**: Standard, High, and Maximum security options
+- **Double Encryption**: Maximum security files use double encryption with email-based decryption codes
+
+## Security Feature Architecture
+The security system supports three levels:
+1. **Standard**: Basic single-layer encryption
+2. **High**: Enhanced encryption with stronger algorithms
+3. **Maximum**: Double encryption - requires secondary decryption code sent via email
+
+### TODO: Email Integration
+The email sending functionality for maximum security files is currently stubbed. To enable it:
+1. Set up an email service integration (SendGrid, Resend, or Gmail)
+2. Add the email sending API key as a secret
+3. Implement the actual email sending in `DecryptionCodeDialog.tsx`
+
+Currently, the decryption code verification works with a simulated "email sent" flow for demonstration purposes.
 
 ## Tech Stack
 - React 18 with TypeScript
