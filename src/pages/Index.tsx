@@ -149,6 +149,23 @@ const Index = () => {
     toast.success(`${file?.name} moved to trash`);
   }, [files]);
 
+  const triggerFileDownload = useCallback((file: FileItem) => {
+    // Create a simulated file blob based on file type
+    const content = `This is a simulated download of: ${file.name}\nSize: ${file.size} bytes\nSecurity Level: ${file.securityLevel}\nDownloaded at: ${new Date().toISOString()}`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`${file.name} downloaded successfully!`);
+  }, []);
+
   const handleDownload = useCallback((id: string) => {
     const file = currentFiles.find(f => f.id === id);
     if (!file) return;
@@ -157,16 +174,16 @@ const Index = () => {
       setDownloadingFile(file);
       setDecryptionDialogOpen(true);
     } else {
-      toast.info(`Downloading ${file.name}...`);
+      triggerFileDownload(file);
     }
-  }, [currentFiles]);
+  }, [currentFiles, triggerFileDownload]);
 
   const handleDecryptionSuccess = useCallback(() => {
     if (downloadingFile) {
-      toast.success(`${downloadingFile.name} decrypted and downloading...`);
+      triggerFileDownload(downloadingFile);
       setDownloadingFile(null);
     }
-  }, [downloadingFile]);
+  }, [downloadingFile, triggerFileDownload]);
 
   const handleFileClick = useCallback((id: string) => {
     const file = currentFiles.find(f => f.id === id);
