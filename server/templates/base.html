@@ -87,6 +87,9 @@
                 {% if has_permission('admin.manage_users') %}
                     <a href="{{ url_for('admin_users') }}">Users</a>
                 {% endif %}
+                {% if has_permission('admin.manage_roles') %}
+                    <a href="{{ url_for('admin_roles') }}">Roles</a>
+                {% endif %}
                 {% if has_permission('incident.manage') %}
                     <a href="{{ url_for('admin_incidents') }}">Incidents</a>
                 {% endif %}

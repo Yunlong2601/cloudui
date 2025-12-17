@@ -127,6 +127,19 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
 
+@app.route('/me')
+@login_required
+def get_current_user_info():
+    user_data = {
+        'id': g.user['id'],
+        'username': g.user['username'],
+        'email': g.user['email'],
+        'clearance': g.user['clearance'],
+        'roles': get_user_roles(g.user['id']),
+        'permissions': get_user_permissions(g.user['id'])
+    }
+    return user_data
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -406,6 +419,43 @@ def admin_update_user(user_id):
     })
     flash('User updated.', 'success')
     return redirect(url_for('admin_users'))
+
+@app.route('/admin/roles')
+@login_required
+@permission_required('admin.manage_roles')
+def admin_roles():
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT r.*, array_agg(p.name) as permissions
+            FROM roles r
+            LEFT JOIN role_permissions rp ON r.id = rp.role_id
+            LEFT JOIN permissions p ON rp.permission_id = p.id
+            GROUP BY r.id
+            ORDER BY r.name
+        """)
+        roles = cur.fetchall()
+        
+        cur.execute("SELECT * FROM permissions ORDER BY name")
+        permissions = cur.fetchall()
+    
+    return render_template('admin/roles.html', roles=roles, permissions=permissions)
+
+@app.route('/admin/roles/<int:role_id>/update', methods=['POST'])
+@login_required
+@permission_required('admin.manage_roles')
+def admin_update_role(role_id):
+    permission_ids = request.form.getlist('permissions')
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM role_permissions WHERE role_id = %s", (role_id,))
+        for perm_id in permission_ids:
+            cur.execute("INSERT INTO role_permissions (role_id, permission_id) VALUES (%s, %s)", (role_id, int(perm_id)))
+    
+    log_audit_action(g.user['id'], 'role_permissions_update', 'role', role_id, 'success', {'permissions': permission_ids})
+    flash('Role permissions updated.', 'success')
+    return redirect(url_for('admin_roles'))
 
 @app.route('/admin/incidents')
 @login_required
