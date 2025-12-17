@@ -40,6 +40,8 @@ export interface FileItem {
   encryptionKey?: string;
   secondaryEncryptionKey?: string;
   recipientEmail?: string;
+  encryptedBlob?: Blob;
+  originalFile?: File;
 }
 
 interface FileCardProps {

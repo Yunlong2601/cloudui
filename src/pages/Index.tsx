@@ -11,8 +11,9 @@ import { DecryptionCodeDialog } from "@/components/files/DecryptionCodeDialog";
 import { Button } from "@/components/ui/button";
 import { Users, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
+import { createEncryptedPackage, generateDecryptionCode } from "@/lib/crypto";
 
-// Helper to generate encryption key
+// Helper to generate encryption key (for display purposes)
 const generateEncryptionKey = () => {
   return Array.from({ length: 6 }, () => 
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random() * 36)]
@@ -71,7 +72,7 @@ const Index = () => {
     setSecurityDialogOpen(true);
   }, []);
 
-  const handleSecurityConfirm = useCallback((settings: SecuritySettings) => {
+  const handleSecurityConfirm = useCallback(async (settings: SecuritySettings) => {
     const selectedFiles = pendingFiles;
     const newUploads: UploadingFile[] = selectedFiles.map(file => ({
       id: `upload-${Date.now()}-${file.name}`,
@@ -82,10 +83,26 @@ const Index = () => {
 
     setUploadingFiles(prev => [...prev, ...newUploads]);
 
-    newUploads.forEach((upload, index) => {
+    for (let index = 0; index < newUploads.length; index++) {
+      const upload = newUploads[index];
       const file = selectedFiles[index];
-      let progress = 0;
       
+      // For maximum security, encrypt the file
+      let encryptedBlob: Blob | undefined;
+      let decryptionCode: string | undefined;
+      
+      if (settings.securityLevel === "maximum") {
+        decryptionCode = generateDecryptionCode();
+        try {
+          encryptedBlob = await createEncryptedPackage(file, decryptionCode);
+        } catch (error) {
+          toast.error(`Failed to encrypt ${file.name}`);
+          continue;
+        }
+      }
+
+      // Simulate upload progress
+      let progress = 0;
       const interval = setInterval(() => {
         progress += Math.random() * 20;
         
@@ -108,14 +125,16 @@ const Index = () => {
             modifiedAt: new Date(),
             securityLevel: settings.securityLevel,
             encryptionKey: generateEncryptionKey(),
-            secondaryEncryptionKey: settings.securityLevel === "maximum" ? generateEncryptionKey() : undefined,
+            secondaryEncryptionKey: decryptionCode,
             recipientEmail: settings.recipientEmail,
+            encryptedBlob: encryptedBlob,
+            originalFile: settings.securityLevel !== "maximum" ? file : undefined,
           };
           
           setFiles(prev => [newFile, ...prev]);
           
           const securityMsg = settings.securityLevel === "maximum" 
-            ? " with maximum security (double encryption)"
+            ? " with maximum security (encrypted)"
             : settings.securityLevel === "high"
             ? " with high security"
             : "";
@@ -130,7 +149,7 @@ const Index = () => {
           );
         }
       }, 200);
-    });
+    }
 
     setPendingFiles([]);
   }, [pendingFiles]);
@@ -149,21 +168,36 @@ const Index = () => {
     toast.success(`${file?.name} moved to trash`);
   }, [files]);
 
-  const triggerFileDownload = useCallback((file: FileItem) => {
-    // Create a simulated file blob based on file type
-    const content = `This is a simulated download of: ${file.name}\nSize: ${file.size} bytes\nSecurity Level: ${file.securityLevel}\nDownloaded at: ${new Date().toISOString()}`;
-    const blob = new Blob([content], { type: 'text/plain' });
+  const triggerFileDownload = useCallback((file: FileItem, downloadEncrypted: boolean = false) => {
+    let blob: Blob;
+    let fileName: string;
+
+    if (downloadEncrypted && file.encryptedBlob) {
+      // Download the encrypted file
+      blob = file.encryptedBlob;
+      fileName = `${file.name}.encrypted`;
+      toast.success(`${fileName} downloaded! Use the Decrypt page to unlock it.`);
+    } else if (file.originalFile) {
+      // Download the original file
+      blob = file.originalFile;
+      fileName = file.name;
+      toast.success(`${file.name} downloaded successfully!`);
+    } else {
+      // Fallback: create a simulated file
+      const content = `This is a simulated download of: ${file.name}\nSize: ${file.size} bytes\nSecurity Level: ${file.securityLevel}\nDownloaded at: ${new Date().toISOString()}`;
+      blob = new Blob([content], { type: 'text/plain' });
+      fileName = file.name;
+      toast.success(`${file.name} downloaded successfully!`);
+    }
+
     const url = URL.createObjectURL(blob);
-    
     const link = document.createElement('a');
     link.href = url;
-    link.download = file.name;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
-    toast.success(`${file.name} downloaded successfully!`);
   }, []);
 
   const handleDownload = useCallback((id: string) => {
@@ -171,8 +205,9 @@ const Index = () => {
     if (!file) return;
 
     if (file.securityLevel === "maximum" && file.recipientEmail && file.secondaryEncryptionKey) {
-      setDownloadingFile(file);
-      setDecryptionDialogOpen(true);
+      // For maximum security files, download encrypted and require decryption
+      triggerFileDownload(file, true);
+      toast.info(`To decrypt this file, go to the Decrypt File page and enter the code sent to ${file.recipientEmail}`);
     } else {
       triggerFileDownload(file);
     }

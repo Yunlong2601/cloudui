@@ -6,10 +6,12 @@ import {
   Trash2, 
   Settings,
   HardDrive,
-  Plus
+  Plus,
+  KeyRound
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 
 interface SidebarProps {
@@ -87,6 +89,18 @@ export function Sidebar({ activeSection, onSectionChange, storageUsed, storageTo
         <p className="text-xs text-muted-foreground">
           {formatStorage(storageUsed)} of {formatStorage(storageTotal)} used
         </p>
+      </div>
+
+      {/* Decrypt Link */}
+      <div className="px-3 pb-2">
+        <Link
+          to="/decrypt"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+          data-testid="link-decrypt-page"
+        >
+          <KeyRound className="w-5 h-5" />
+          Decrypt File
+        </Link>
       </div>
 
       {/* Settings */}
