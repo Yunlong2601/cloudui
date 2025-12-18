@@ -47,6 +47,7 @@ const sharedFiles: FileItem[] = [
 const Index = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
   const [activeSection, setActiveSection] = useState("my-drive");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -271,7 +272,9 @@ const Index = () => {
           credentials: "include",
         });
         if (response.ok) {
+          const userData = await response.json();
           setIsAuthenticated(true);
+          setUserRole(userData.role || "user");
         } else {
           setIsAuthenticated(false);
           navigate("/login");
@@ -331,6 +334,7 @@ const Index = () => {
         storageUsed={storageUsed}
         storageTotal={storageTotal}
         onChatOpen={() => setChatOpen(true)}
+        userRole={userRole || undefined}
       />
       
       <main className="flex-1 flex flex-col overflow-hidden">

@@ -9,7 +9,8 @@ import {
   Plus,
   KeyRound,
   MessageSquare,
-  LogOut
+  LogOut,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface SidebarProps {
   storageUsed: number;
   storageTotal: number;
   onChatOpen?: () => void;
+  userRole?: "user" | "admin";
 }
 
 const navItems = [
@@ -37,7 +39,7 @@ const navItems = [
   { id: "trash", label: "Trash", icon: Trash2 },
 ];
 
-export function Sidebar({ activeSection, onSectionChange, storageUsed, storageTotal, onChatOpen }: SidebarProps) {
+export function Sidebar({ activeSection, onSectionChange, storageUsed, storageTotal, onChatOpen, userRole }: SidebarProps) {
   const navigate = useNavigate();
   const storagePercentage = (storageUsed / storageTotal) * 100;
 
@@ -137,6 +139,20 @@ export function Sidebar({ activeSection, onSectionChange, storageUsed, storageTo
           Secure Chat
         </button>
       </div>
+
+      {/* Admin Dashboard Link - Only visible to admin users */}
+      {userRole === "admin" && (
+        <div className="px-3 pb-2">
+          <Link
+            to="/admin"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200"
+            data-testid="link-admin-dashboard"
+          >
+            <Shield className="w-5 h-5" />
+            Admin Dashboard
+          </Link>
+        </div>
+      )}
 
       {/* Settings */}
       <div className="p-3 border-t border-border">
