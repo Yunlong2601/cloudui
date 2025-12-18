@@ -7,7 +7,8 @@ import {
   Settings,
   HardDrive,
   Plus,
-  KeyRound
+  KeyRound,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ export function Sidebar({ activeSection, onSectionChange, storageUsed, storageTo
       </div>
 
       {/* Decrypt Link */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-1">
         <Link
           to="/decrypt"
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
@@ -100,6 +101,18 @@ export function Sidebar({ activeSection, onSectionChange, storageUsed, storageTo
         >
           <KeyRound className="w-5 h-5" />
           Decrypt File
+        </Link>
+      </div>
+
+      {/* Chat Link */}
+      <div className="px-3 pb-2">
+        <Link
+          to="/chat"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
+          data-testid="link-chat-page"
+        >
+          <MessageSquare className="w-5 h-5" />
+          Secure Chat
         </Link>
       </div>
 
