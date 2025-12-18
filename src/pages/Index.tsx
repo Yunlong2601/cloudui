@@ -61,38 +61,6 @@ const Index = () => {
   const [downloadingFile, setDownloadingFile] = useState<FileItem | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/user", {
-          credentials: "include",
-        });
-        if (response.ok) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-          navigate("/login");
-        }
-      } catch (error) {
-        setIsAuthenticated(false);
-        navigate("/login");
-      }
-    };
-    checkAuth();
-  }, [navigate]);
-
-  if (isAuthenticated === null) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   const storageUsed = files.reduce((acc, file) => acc + file.size, 0);
   const storageTotal = 15 * 1073741824; // 15 GB
 
@@ -295,6 +263,38 @@ const Index = () => {
   const handleClearAllUploads = useCallback(() => {
     setUploadingFiles([]);
   }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/user", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          navigate("/login");
+        }
+      } catch (error) {
+        setIsAuthenticated(false);
+        navigate("/login");
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   // Convert FileItem to the dialog's expected format
   const getFileTypeCategory = (mimeType: string) => {
