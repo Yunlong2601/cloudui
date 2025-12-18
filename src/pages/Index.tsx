@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { UploadZone } from "@/components/files/UploadZone";
@@ -44,6 +45,8 @@ const sharedFiles: FileItem[] = [
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [activeSection, setActiveSection] = useState("my-drive");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,6 +60,38 @@ const Index = () => {
   const [downloadCodeDialogOpen, setDownloadCodeDialogOpen] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState<FileItem | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/user", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          navigate("/login");
+        }
+      } catch (error) {
+        setIsAuthenticated(false);
+        navigate("/login");
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const storageUsed = files.reduce((acc, file) => acc + file.size, 0);
   const storageTotal = 15 * 1073741824; // 15 GB
